@@ -9,7 +9,7 @@ import glob
 class Clean_Music_Files:
     def __init__(self):
         super().__init__()
-        self.parent_dir = '/home/yash/latest'
+        self.parent_dir = '/media/yash/91EE-A58B/music'
         self.group_size = 10
         self.number_of_folders = 0
 
@@ -74,8 +74,8 @@ class Clean_Music_Files:
         path, dirs, files = next(os.walk(folder_path))
 
         num_of_files = len(files)
-        self.make_groups(num_of_files)
         self.set_number_of_folders(num_of_files)
+        self.make_groups(num_of_files)
         with os.scandir(folder_path) as entries:
             for entry in entries:
                 if (entry.is_file()):
