@@ -1,7 +1,8 @@
 from typing import Union
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from Parser import Parser
+from authentication_checker import JWTBearer
 
 app = FastAPI()
 
@@ -16,7 +17,7 @@ def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 
 
-@app.get("/process")
+@app.get("/process", dependencies=[Depends(JWTBearer())])
 def process():
     try:
         parser = Parser()
