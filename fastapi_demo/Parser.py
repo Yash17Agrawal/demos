@@ -26,6 +26,8 @@ class Parser:
             self.retry_count = retry_count
 
     def scrape(self) -> List[Product]:
+        # if not url:
+        #     url = self.remote_url
         """
             Scrape the remote URL and stores the data in catalogue_data.json
         """
@@ -43,14 +45,17 @@ class Parser:
 
             # Find all product elements on the page
             product_cards = soup.find_all('div', class_='product-inner')
-
-            for card in product_cards[:1]:
+            
+            for card in product_cards:
                 thumbnail = card.find('img', class_='attachment-woocommerce_thumbnail')["data-lazy-src"]
                 # Extract product name
                 title = card.find('h2', class_='woo-loop-product__title').find('a').text.strip()
                 # Extract product price
-                price = card.find('ins').find('span').find("bdi").text.strip()
-
+                price = card.find('ins')
+                if price:
+                    price = price.find('span').find("bdi").text.strip()
+                else:
+                    price = card.find('span', class_='woocommerce-Price-amount').find('bdi').text.strip()
                 # Remove the currency symbol (₹) and any non-numeric characters
                 numeric_value = ''.join(filter(str.isdigit, price))
 
@@ -61,12 +66,18 @@ class Parser:
                 # Append product information to the list
                 products.append({'name': title, 'price': price, 'image_url': thumbnail})
 
-            print(products)
+            # print(products)
+            if products:
+                self.store_data(products)
+                    # Find the link to the next page
+            # next_page_link = soup.find('a', class_='next')  # Example: Assuming the link has class 'next'
+            # if next_page_link:
+            #     next_page_url = next_page_link['href']
+            #     # Make an HTTP request to the URL of the next page
+            #     self.scrape(next_page_url)
         else:
             # Print an error message if the request was unsuccessful
             print(f"Failed to retrieve data from {self.remote_url}. Status code: {response.status_code}")
-        if products:
-            self.store_data(products)
 
     def store_data(self, data: List[dict]) -> None:
         valid_scrapped_products: List[Product] = []
