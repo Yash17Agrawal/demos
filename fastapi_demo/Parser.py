@@ -24,24 +24,14 @@ class Parser:
             self.number_of_pages = number_of_pages
         if retry_count:
             self.retry_count = retry_count
-
-    def scrape(self) -> List[Product]:
-        # if not url:
-        #     url = self.remote_url
-        """
-            Scrape the remote URL and stores the data in catalogue_data.json
-        """
-        # catalogue_data = [{"name": "John", "price": 30, "img_url": "https://1.com/shop/"},
-        #                   {"name": "Alice", "price": 25, "img_url": "https://2.com/shop/"},
-        #                   {"name": "Alice", "price": 0, "img_url": "https://2.com/shop/"}]
-        
-        response = requests.get(self.remote_url)
+    
+    def _scrape(self, url, products) -> List[Product]:
+        response = requests.get(url)
         if response.status_code == 200:
         # Parse the HTML content
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # Extract product information
-            products = []
 
             # Find all product elements on the page
             product_cards = soup.find_all('div', class_='product-inner')
@@ -65,19 +55,36 @@ class Parser:
 
                 # Append product information to the list
                 products.append({'name': title, 'price': price, 'image_url': thumbnail})
-
-            # print(products)
             if products:
                 self.store_data(products)
-                    # Find the link to the next page
-            # next_page_link = soup.find('a', class_='next')  # Example: Assuming the link has class 'next'
-            # if next_page_link:
-            #     next_page_url = next_page_link['href']
-            #     # Make an HTTP request to the URL of the next page
-            #     self.scrape(next_page_url)
+            # Find the link to the next page
+            pagination = soup.find("nav", class_="woocommerce-pagination").find("ul").find_all("li")
+            for line in pagination:
+                current_page = line.find('span', class_='current')
+                if current_page:
+                    current_page = int(current_page.text.strip())
+                    if current_page <= self.number_of_pages:
+                        # Get the URL of the next page
+                        next_page_url = line.find_next_sibling().find("a")['href']
+                        print("Parsing {}".format(next_page_url))
+                        # Make an HTTP request to the URL of the next page
+                        return self._scrape(next_page_url, products)
+                    return
         else:
             # Print an error message if the request was unsuccessful
             print(f"Failed to retrieve data from {self.remote_url}. Status code: {response.status_code}")
+
+
+    def scrape(self) -> List[Product]:
+        products = []
+        """
+            Scrape the remote URL and stores the data in catalogue_data.json
+        """
+        # catalogue_data = [{"name": "John", "price": 30, "img_url": "https://1.com/shop/"},
+        #                   {"name": "Alice", "price": 25, "img_url": "https://2.com/shop/"},
+        #                   {"name": "Alice", "price": 0, "img_url": "https://2.com/shop/"}]
+        self._scrape(self.remote_url, products)
+        
 
     def store_data(self, data: List[dict]) -> None:
         valid_scrapped_products: List[Product] = []
