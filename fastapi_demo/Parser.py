@@ -11,25 +11,29 @@ class Parser:
         Parser class to scrape the remote
         remote_url: str: URL to scrape
         number_of_pages: int: Number of pages to scrape
+        proxy: str: Proxy to use for the request
         retry_count: int: Number of retries to make
     """
     remote_url = "https://dentalstall.com/shop/"
     number_of_pages = 2
     retry_count = 5
+    proxy = None
     caching = {}
 
-    def __init__(self, url=None, number_of_pages=None, retry_count=None) -> None:
+    def __init__(self, url=None, number_of_pages=None, proxy=None,retry_count=None) -> None:
         if url:
             self.remote_url = url
         if number_of_pages:
             self.number_of_pages = number_of_pages
         if retry_count:
             self.retry_count = retry_count
+        if proxy:
+            self.proxy = proxy
     
     def _scrape(self, url, products, attempt=1) -> List[Product]:
         print("Parsing {}, attempt: {}".format(url, attempt))
         try:
-            response = requests.get(url)
+            response = requests.get(url, proxies={"http": self.proxy, "https": self.proxy})
             if response.status_code == 200:
                 # Parse the HTML content
                 soup = BeautifulSoup(response.text, 'html.parser')
@@ -56,8 +60,10 @@ class Parser:
 
                     # Append product information to the list
                     products.append({'name': title, 'price': price, 'image_url': thumbnail})
-                if products:
-                    self.store_data(products)
+                
+                # If we want to store intermediate data, uncomment the lines below
+                # if products:
+                #     self.store_data(products)
                 # Find the link to the next page
                 pagination = soup.find("nav", class_="woocommerce-pagination").find("ul").find_all("li")
                 for line in pagination:
@@ -90,6 +96,8 @@ class Parser:
         #                   {"name": "Alice", "price": 25, "image_url": "https://2.com/shop/"},
         #                   {"name": "Alice", "price": 0, "image_url": "https://2.com/shop/"}]
         self._scrape(self.remote_url, products)
+        # If we want to store all data at once, uncomment the line below
+        self.store_data(products)
         
     def _get_cache_key(self, product:Product):
         return "{}_{}".format(product.title, product.image_url)
