@@ -4,7 +4,9 @@ from bs4 import BeautifulSoup
 import requests
 from Product import Product
 
-import json
+
+from Notify import Notify
+from Storage import Storage
 
 class Parser:
     """
@@ -18,6 +20,7 @@ class Parser:
     number_of_pages = 2
     retry_count = 5
     proxy = None
+    storage = Storage()
     caching = {}
 
     def __init__(self, url=None, number_of_pages=None, proxy=None,retry_count=None) -> None:
@@ -119,15 +122,13 @@ class Parser:
                 print(e)
                 invalid_scrapped_products.append(product_items)
 
-        # Save scraped data to a JSON file
-        with open('catalogue_data.json', 'w') as json_file:
-            products_dict = [product.to_dict()
-                             for product in valid_scrapped_products]
-            json.dump(products_dict, json_file, indent=4)
+        self.storage.save(valid_scrapped_products)
         self._notify(len(valid_scrapped_products),
                      len(invalid_scrapped_products))
 
+
     def _notify(self, success_count, failed_count) -> None:
-        print("Catalogue data saved to catalogue_data.json")
-        print("{} products scrapped successfully and {} failed".format(
+        notify = Notify()
+        notify.send_notification("Catalogue data saved to catalogue_data.json")
+        notify.send_notification("{} products scrapped successfully and {} failed".format(
             success_count, failed_count))
