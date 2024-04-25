@@ -14,8 +14,9 @@ class Parser:
         retry_count: int: Number of retries to make
     """
     remote_url = "https://dentalstall.com/shop/"
-    number_of_pages = 5
+    number_of_pages = 2
     retry_count = 5
+    caching = {}
 
     def __init__(self, url=None, number_of_pages=None, retry_count=None) -> None:
         if url:
@@ -90,6 +91,8 @@ class Parser:
         #                   {"name": "Alice", "price": 0, "image_url": "https://2.com/shop/"}]
         self._scrape(self.remote_url, products)
         
+    def _get_cache_key(self, product:Product):
+        return "{}_{}".format(product.title, product.image_url)
 
     def store_data(self, data: List[dict]) -> None:
         valid_scrapped_products: List[Product] = []
@@ -98,7 +101,12 @@ class Parser:
             try:
                 product = Product(
                     product_items['name'], product_items['price'], product_items['image_url'])
+                if self._get_cache_key(product) in self.caching.keys() and self.caching[self._get_cache_key(product)] == product.price :
+                    # Dont want to re-trigger db updated if price is not changed
+                    print("skipping update for product: {}".format(product.title))
+                    continue
                 valid_scrapped_products.append(product)
+                self.caching[self._get_cache_key(product)] = product.price
             except Exception as e:
                 print(e)
                 invalid_scrapped_products.append(product_items)
